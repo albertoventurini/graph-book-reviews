@@ -27,6 +27,10 @@ public class BookReviewsGraph extends Graph {
     public static final String EDGE_IN_COUNTRY = "inCountry";
     public static final String EDGE_REVIEWED = "reviewed";
 
+    public MapSet<String, Node> countriesByName = new MapSet<>();
+    public MapSet<String, Node> statesByName = new MapSet<>();
+    public MapSet<String, Node> citiesByName = new MapSet<>();
+
     public BookReviewsGraph(final BookReviewsCsvParser.ParseResult source) {
         source.books().forEach(b -> {
             addBookNode(b);
@@ -49,7 +53,7 @@ public class BookReviewsGraph extends Graph {
         addNodeIfAbsent(book.publisher(), NODE_PUBLISHER);
 
         final Edge edge = addEdge(EDGE_PUBLISHED_BY, book.isbn(), book.publisher());
-        edge.properties.put("yearOfPublication", book.yearOfPublication());
+        edge.properties.put("year", book.yearOfPublication());
     }
 
     private void addAuthorNode(final Book book) {
@@ -61,11 +65,9 @@ public class BookReviewsGraph extends Graph {
     private void addBookRating(final BookRating bookRating) {
         final String userId = buildUserId(bookRating.userId());
         if (getNode(userId) == null) {
-            System.out.println("Warning: user not found: " + bookRating.userId());
             return;
         }
         if (getNode(bookRating.isbn()) == null) {
-            System.out.println("Warning: book not found: " + bookRating.isbn());
             return;
         }
         final Edge edge = addEdge(EDGE_REVIEWED, userId, bookRating.isbn());
@@ -101,6 +103,7 @@ public class BookReviewsGraph extends Graph {
             if (getNode(countryId) == null) {
                 final Node countryNode = addNode(countryId, NODE_COUNTRY);
                 countryNode.properties.put("name", locationTokens.get(2));
+                countriesByName.put(locationTokens.get(2), countryNode);
             }
         });
     }
@@ -110,6 +113,7 @@ public class BookReviewsGraph extends Graph {
             if (getNode(stateId) == null) {
                 final Node stateNode = addNode(stateId, NODE_STATE);
                 stateNode.properties.put("name", locationTokens.get(1));
+                statesByName.put(locationTokens.get(1), stateNode);
 
                 buildCountryId(locationTokens).ifPresent(countryId -> {
                     addEdge(EDGE_IN_COUNTRY, stateId, countryId);
@@ -123,6 +127,7 @@ public class BookReviewsGraph extends Graph {
             if (getNode(cityId) == null) {
                 final Node cityNode = addNode(cityId, NODE_CITY);
                 cityNode.properties.put("name", locationTokens.get(0));
+                citiesByName.put(locationTokens.get(0), cityNode);
 
                 buildStateId(locationTokens).ifPresent(stateId -> {
                     addEdge(EDGE_IN_STATE, cityId, stateId);

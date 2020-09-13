@@ -4,6 +4,7 @@ import com.albertoventurini.graphs.bookreviews.Pair;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class Queries {
@@ -33,6 +34,18 @@ public class Queries {
                 .average()
                 .getAsDouble();
 
+    }
+
+    public static Set<String> getBooksReviewedByUsersInState(final BookReviewsGraph graph, final String state) {
+        return graph.statesByName.get(state).stream()
+                .flatMap(s -> s.incomingEdges(BookReviewsGraph.EDGE_IN_STATE))
+                .map(e -> e.source)
+                .flatMap(c -> c.incomingEdges(BookReviewsGraph.EDGE_IN_CITY))
+                .map(e -> e.source)
+                .flatMap(u -> u.outgoingEdges(BookReviewsGraph.EDGE_REVIEWED))
+                .map(e -> e.target)
+                .map(b -> (String) b.properties.get("title"))
+                .collect(Collectors.toSet());
     }
 
 }

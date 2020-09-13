@@ -5,6 +5,7 @@ import com.albertoventurini.graphs.bookreviews.graph.BookReviewsGraph;
 import com.albertoventurini.graphs.bookreviews.graph.Queries;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class BookReviews {
 
@@ -20,8 +21,22 @@ public class BookReviews {
 
         final List<Pair<String, Integer>> authorsByReviews = Queries.getAuthorsByNumberOfReviews(graph);
 
+        System.out.println("Top ten authors by number of reviews:\n" +
+                authorsByReviews
+                        .stream()
+                        .limit(10)
+                        .map(p -> String.format("%s %s", p.first, p.second))
+                        .collect(Collectors.joining("\n")));
+
         final double avg = Queries.getAverageRatingsByAuthor(graph, "Dan Brown");
 
-        int i = 0;
+        System.out.println("\nAverage ratings for top ten authors:\n" +
+                authorsByReviews
+                        .stream()
+                        .limit(10)
+                        .map(p -> String.format("%s %f", p.first, Queries.getAverageRatingsByAuthor(graph, p.first)))
+                        .collect(Collectors.joining("\n")));
+
+        System.out.println(Queries.getBooksReviewedByUsersInState(graph, "california"));
     }
 }

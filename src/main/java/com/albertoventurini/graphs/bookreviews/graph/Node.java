@@ -7,21 +7,18 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-public class Node {
+public class Node extends GraphElement {
 
     public final String id;
-    public final String label;
     public final List<Edge> outgoingEdges;
     public final List<Edge> incomingEdges;
-    public final Map<String, Object> properties;
 
     public Node(final String id, final String label) {
+        super(label);
         this.id = id;
-        this.label = label;
 
         outgoingEdges = new ArrayList<>();
         incomingEdges = new ArrayList<>();
-        properties = new HashMap<>();
     }
 
     @Override
