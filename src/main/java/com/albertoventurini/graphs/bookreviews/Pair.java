@@ -40,4 +40,12 @@ public class Pair<T1, T2> {
                 ", second=" + second +
                 '}';
     }
+
+    public T1 first() {
+        return first;
+    }
+
+    public T2 second() {
+        return second;
+    }
 }
