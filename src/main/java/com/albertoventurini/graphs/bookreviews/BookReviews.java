@@ -42,9 +42,10 @@ public class BookReviews {
 
         System.out.println("\n\nTop ten authors by ratings:\n" +
                 Queries.getAuthorsByAverageRating(graph)
+                        .entrySet()
                         .stream()
                         .limit(10)
-                        .map(p -> String.format("%s %s", p.first, p.second))
+                        .map(p -> String.format("%s %s", p.getKey(), p.getValue()))
                         .collect(Collectors.joining("\n")));
 
         System.out.println("\n\nBooks reviewed by users in Italy (top 10):\n" +

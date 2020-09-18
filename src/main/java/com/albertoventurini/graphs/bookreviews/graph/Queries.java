@@ -3,9 +3,13 @@ package com.albertoventurini.graphs.bookreviews.graph;
 import com.albertoventurini.graphs.bookreviews.Pair;
 
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 public class Queries {
@@ -18,14 +22,23 @@ public class Queries {
                 .collect(Collectors.toList());
     }
 
-    public static List<Pair<String, Double>> getAuthorsByAverageRating(final BookReviewsGraph graph) {
+    public static LinkedHashMap<String, Double> getAuthorsByAverageRating(final BookReviewsGraph graph) {
         return graph.getNodesByLabel(BookReviewsGraph.NODE_AUTHOR)
                 .stream()
                 .map(a -> (String) a.properties.get("name"))
-                .map(a -> Pair.of(a, getAverageRatingsByAuthor(graph, a)))
-                .sorted(Comparator.comparingDouble(p -> -p.second))
-                .collect(Collectors.toList());
+                .map(a -> Map.entry(a, getAverageRatingsByAuthor(graph, a)))
+                .sorted(Comparator.comparingDouble(e -> -e.getValue()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
     }
+
+//    public static List<Pair<String, Double>> getAuthorsByAverageRating(final BookReviewsGraph graph) {
+//        return graph.getNodesByLabel(BookReviewsGraph.NODE_AUTHOR)
+//                .stream()
+//                .map(a -> (String) a.properties.get("name"))
+//                .map(a -> Pair.of(a, getAverageRatingsByAuthor(graph, a)))
+//                .sorted(Comparator.comparingDouble(p -> -p.second))
+//                .collect(Collectors.toList());
+//    }
 
     private static List<Integer> getRatingsByAuthor(final Node authorNode) {
         return authorNode
