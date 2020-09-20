@@ -18,7 +18,7 @@ This data set contains the following CSV files:
 - *BX-Books.csv*, which contains each book's ISBN, title, author, publisher and year of publication. This file also contains links to thumbnail pictures, but we won't use those here.
 - *BX-Book-Ratings.csv*, which contains a row for each book review.
 
-If we picture this data set as an [entity-relationship (ER)]([https://en.wikipedia.org/wiki/Entity%E2%80%93relationship_model](https://en.wikipedia.org/wiki/Entity–relationship_model)) diagram, this is how it would look like:
+If we picture this data set as an [entity-relationship (ER)](https://en.wikipedia.org/wiki/Entity%E2%80%93relationship_model](https://en.wikipedia.org/wiki/Entity–relationship_model)) diagram, this is how it would look like:
 
 ![ERD](ERD.png)
 
@@ -45,18 +45,18 @@ We could denormalize some of the data, but this would have the side-effect of lo
 
 Now let's suppose we want to store our entire data set in memory. The sample data set that we got from Kaggle contains less than a million entries, so it will easily fit in memory.
 
-Storing our data in memory is a trivial but perfectly valid approach, especially if we want to support a read-only workload and we don't need to guarantee write consistency. If we need to guarantee write consistency, we can still store the data in memory, but we'll probably need to ensure that our data structures are thread-safe and that we persist the changes to non-volatile memory.
+Storing our data in memory is a trivial but perfectly valid approach, especially if we want to support a read-only workload and we don't need to guarantee write consistency and persistency. If we need to offer those guarantees, we can still store the data in memory, but we'll probably need to ensure that our data structures are thread-safe and that we somehow persist the changes to non-volatile memory.
 
 We'll start with some classes, for example:
 
 ```java
 public class Book {
-	String isbn;
-	String title;
+	  String isbn;
+	  String title;
 }
 
 public class Author {
-	String name;
+	  String name;
 }
 ```
 
@@ -66,16 +66,16 @@ In the case of `Book` and `Author`, we might consider that a book has one author
 
 ```java
 public class Book {
-	String isbn;
-	String title;
-	Author author; // direct reference from book to author
+	  String isbn;
+	  String title;
+	  Author author; // direct reference from book to author
 }
 ```
 
 This makes it trivial to get the author of a book. However, the reverse (getting all books written by an author) is more expensive, because we need to scan the entire list of books. For example, if we're looking for all books by Dan Brown, we need to write something like this:
 
 ```java
-// Scan through all books to find Dan Brown's books. This is inefficient.
+// Scan through all books to find Dan Brown's books. This is generally inefficient.
 List<Book> danBrownBooks = books.stream()
                       .filter(b -> b.author.name.equals("Dan Brown"))
 											.collect(Collectors.toList());
@@ -92,7 +92,7 @@ public class Author {
 
 However, this solution doesn't "feel" good. Every time we want to change a book's author, we have two places to change.
 
-Besides, how should we handle relationships that contain extra data? For example, the relationship between a book and its publisher contains a piece of extra data, i.e. the year of publication. It's not clear where we should put this field: should we declare it in the `Book` class? Then how do we handle cases when a book has multiple publishers and/or years of publication?
+Besides, how should we handle relationships that contain extra data? For example, the relationship between a book and its publisher contains a piece of extra data, i.e. the year of publication. It's not clear where we should put this field: should we declare it in the `Book` class? Then how do we handle cases when a book has multiple publishers and/or years of publication? Should we create a new class (e.g. `BookPublished`), essentially adopting the *join table* pattern of relational databases?
 
 ## Labelled property graphs
 
@@ -108,7 +108,7 @@ You may recall from mathematics that a graph is a collection of *nodes* (also kn
 
 <img src="Graph.png" alt="Graph" style="zoom:50%;" />
 
-On top of this, a labelled property graph model adds a few extra features:
+On top of this, a **labelled property graph model** adds a few extra features:
 
 - Each node and each edge have a *label* which identifies their role in the data model.
 - Each node and each edge store a set of key-value *properties*.
@@ -122,9 +122,9 @@ So how can we model the book review domain as a labelled property graph? Here's 
 
 Nodes have labels (e.g. the `Book` node is labelled "Book") and some properties -- for example, the `Book` node has two properties, `isbn` and `title`. Node properties are just the same as the attributes we previously identified in our ER diagram.
 
-Edges have labels too (e.g. the edge connecting `User` and `Book` is labelled "Reviewed"). Note how some edges also have properties -- for example, the `Reviewed` edge has the `rating` property, which stores the rating a user gave to a book, and the `Published by` edge has a `year` property, i.e. the year the book was published. Other edges don't have properties -- for example, the `In City` edge that connects a user to the city where they live: we don't need to store any extra data on that relationship.
+Edges have labels too (e.g. the edge connecting `User` and `Book` is labelled "Reviewed"). Some edges also have properties -- for example, the `Reviewed` edge has the `rating` property, which stores the rating a user gave to a book, and the `Published by` edge has a `year` property, i.e. the year the book was published. Other edges don't have properties -- for example, the `In City` edge which connects a user to the city where they live doesn't have properties because we don't need to store extra data on that relationship.
 
-The picture above represents the *schema* of our graph model. When we create a graph instance and store some data in it, here is how it could be pictured (note that this is just a subset of the entire graph):
+The picture above represents the *schema* of our graph model. When we create a graph instance and store some data in it, here is how it could be pictured this is just a subset of the entire graph):
 
 <img src="Graph2.png" alt="Graph2" style="zoom:50%;" />
 
@@ -184,7 +184,7 @@ Nothing surprising here, except maybe those `outgoingEdges` and `incomingEdges` 
 
 I chose to represent `outgoingEdges` and `incomingEdges` as lists, but these might as well be sets (e.g. hash sets or tree sets) or other structures. The choice depends on a number of factors (e.g. whether we need to guarantee uniqueness of each edge.) However, these consideration are beyond the scope of this article -- if you are looking for efficient in-memory graph databases, you might want to consider products such as [Memgraph](https://memgraph.com/) or [Neo4j embedded](https://neo4j.com/docs/java-reference/current/java-embedded/). For this example I decided to keep things simple and use plain array lists.
 
-Also, note that each node has an `id` field. Unsurprisingly, the primary function of this field is to guarantee uniqueness of each node.
+Also, each node has an `id` field. Unsurprisingly, the primary function of this field is to guarantee uniqueness of each node.
 
 Next, we'll define the `Graph` class which exposes methods for creating nodes and edges:
 
@@ -221,7 +221,7 @@ public class Graph {
 }
 ```
 
-The two maps, `nodeIdToNode` and `nodeLabelToNode`, allow us retrieve nodes by their id and label, respectively. This will become especially useful when we start writing queries.
+The two maps `nodeIdToNode` and `nodeLabelToNode` allow us retrieve nodes by their id and label, respectively. This will become especially useful when we start writing queries.
 
 We define a `BookReviewGraph` class as a subclass of `Graph`:
 
@@ -264,7 +264,6 @@ public class BookReviewsGraph extends Graph {
     
     // ...
 }
-
 ```
 
 We don't use random-generated ids (e.g. UUIDs); instead, we repurpose entity data as ids. This has a couple of advantages:
@@ -279,7 +278,7 @@ Now that we have a basic graph implementation for our book review domain, let's 
 - **Query 1**: get the average rating for each author.
 - **Query 2**: get all books reviewed by users from a specific country.
 
-The pattern for both queries will be the same: start with a node (or a set of nodes) and navigate through edges and nodes, until we reach the data we want to return.
+The pattern for both queries will be the same: starting with a node (or a set of nodes), we navigate through edges and nodes, until we reach the data that we want to return.
 
 ### Query 1: average rating for each author
 
@@ -287,7 +286,7 @@ Let's start by writing a query that returns the average rating for a specific au
 
 The query will traverse a section of the graph in order to extract the data we want (average rating for each author.) We can break it down into 4 steps:
 
-1. We start from the node corresponding to the author we're interested in.
+1. Start from the node corresponding to the author we're interested in.
 2. Navigate through the "Written by" edges that point to the author node.
 3. Get the source nodes of the "Written by" edges. These will be book nodes.
 4. Navigate through the "Reviewed" edges that point to the book nodes and extract the `rating` property from these edges.
@@ -302,51 +301,51 @@ In code:
 // Given an author name, return the average rating for that author
 public static double getAverageRatingByAuthor(BookReviewsGraph graph, String authorName) {
     return graph
-            // (1) Start with the author node
-            .getNodeById("author-" + authorName)
+        // (1) Start with the author node
+        .getNodeById("author-" + authorName)
             
-            // (2) From the author node, take incoming edges with label "EDGE_WRITTEN_BY"
-            .incomingEdges(BookReviewsGraph.EDGE_WRITTEN_BY)
+        // (2) From the author node, take incoming edges with label "EDGE_WRITTEN_BY"
+        .incomingEdges(BookReviewsGraph.EDGE_WRITTEN_BY)
             
-            // (3) Navigate with the edge source nodes (i.e. book nodes)
-            .map(e -> e.source)
+        // (3) Navigate with the edge source nodes (i.e. book nodes)
+        .map(e -> e.source)
             
-            // (4) From book nodes, take the incoming edges with label "EDGE_REVIEWED"
-            .flatMap(n -> n.incomingEdges(BookReviewsGraph.EDGE_REVIEWED))
+        // (4) From book nodes, take the incoming edges with label "EDGE_REVIEWED"
+        .flatMap(n -> n.incomingEdges(BookReviewsGraph.EDGE_REVIEWED))
             
-            // Extract the "rating" property from each review relationship
-            .mapToInt(e -> (int) e.properties.get("rating"))
+        // Extract the "rating" property from each review relationship
+        .mapToInt(e -> (int) e.properties.get("rating"))
             
-            // Take the average as double
-            .average()
+        // Take the average as double
+        .average()
             
-            // In case an author doesn't have ratings (and/or we have some bad data),
-            // just return 0
-						.orElse(0.0);
-    }
+        // In case an author doesn't have ratings (and/or we have some bad data),
+        // just return 0
+        .orElse(0.0);
+}
 ```
 
 Using this query, we can easily find the average rating for each author:
 
 ```java
 // Return a map (sorted by rating, descending) of authors and their rating
-    public static LinkedHashMap<String, Double> getAuthorsByAverageRating(BookReviewsGraph graph) {
-        return graph
-                // Get all the authors in the graph
-                .getNodesByLabel(BookReviewsGraph.NODE_AUTHOR)
-                .stream()
+public static LinkedHashMap<String, Double> getAuthorsByAverageRating(BookReviewsGraph graph) {
+    return graph
+    		// Get all the authors in the graph
+        .getNodesByLabel(BookReviewsGraph.NODE_AUTHOR)
+        .stream()
           
-                // Get each author's name
-                .map(a -> (String) a.properties.get("name"))
+        // Get each author's name
+        .map(a -> (String) a.properties.get("name"))
           
-                // Calculate the average rating for each author
-                .map(a -> Map.entry(a, getAverageRatingsByAuthor(graph, a)))
+        // Calculate the average rating for each author
+        .map(a -> Map.entry(a, getAverageRatingsByAuthor(graph, a)))
           
-                // Sort by rating (descending)
-                .sorted(Comparator.comparingDouble(e -> -e.getValue()))
+        // Sort by rating (descending)
+        .sorted(Comparator.comparingDouble(e -> -e.getValue()))
           
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
-    }
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+}
 ```
 
 Here's the output of the query with the data set we got from Kaggle:
@@ -376,38 +375,38 @@ In code:
 ```java
 // Given a country name, return the titles of all books reviewed by users in that country
 public static Set<String> getBooksReviewedByUsersInCountry(BookReviewsGraph graph, String country) {
-        return graph
-                // (1) Get the country node that match the given name
-                .getNodeById("country-" + country)
+    return graph
+        // (1) Get the country node that match the given name
+        .getNodeById("country-" + country)
                 
-                // (2) Take incoming egdes with label "EDGE_IN_COUNTRY"
-                .incomingEdges(BookReviewsGraph.EDGE_IN_COUNTRY)
+        // (2) Take incoming egdes with label "EDGE_IN_COUNTRY"
+        .incomingEdges(BookReviewsGraph.EDGE_IN_COUNTRY)
                 
-                // (3) Take edge source nodes (i.e. state nodes)
-                .map(e -> e.source)
+        // (3) Take edge source nodes (i.e. state nodes)
+        .map(e -> e.source)
                 
-                // (4) Take incoming edges with label "EDGE_IN_STATE"
-                .flatMap(s -> s.incomingEdges(BookReviewsGraph.EDGE_IN_STATE))
+        // (4) Take incoming edges with label "EDGE_IN_STATE"
+        .flatMap(s -> s.incomingEdges(BookReviewsGraph.EDGE_IN_STATE))
                 
-                // (5) Take edge source nodes (i.e. city nodes)
-                .map(e -> e.source)
+        // (5) Take edge source nodes (i.e. city nodes)
+        .map(e -> e.source)
                 
-                // (6) Take incoming edges with label "EDGE_IN_CITY"
-                .flatMap(c -> c.incomingEdges(BookReviewsGraph.EDGE_IN_CITY))
+        // (6) Take incoming edges with label "EDGE_IN_CITY"
+        .flatMap(c -> c.incomingEdges(BookReviewsGraph.EDGE_IN_CITY))
                 
-                // (7) Take edge source nodes (i.e. user nodes)
-                .map(e -> e.source)
+        // (7) Take edge source nodes (i.e. user nodes)
+        .map(e -> e.source)
                 
-                // (8) Take outgoing edges with label "EDGE_REVIEWED"
-                .flatMap(u -> u.outgoingEdges(BookReviewsGraph.EDGE_REVIEWED))
+        // (8) Take outgoing edges with label "EDGE_REVIEWED"
+        .flatMap(u -> u.outgoingEdges(BookReviewsGraph.EDGE_REVIEWED))
                 
-                // (9) Take edge target nodes (i.e. books)
-                .map(e -> e.target)
+        // (9) Take edge target nodes (i.e. books)
+        .map(e -> e.target)
                 
-                // Extract "title" property from book nodes
-                .map(b -> (String) b.properties.get("title"))
-                .collect(Collectors.toSet());
-    }
+        // Extract "title" property from book nodes
+        .map(b -> (String) b.properties.get("title"))
+        .collect(Collectors.toSet());
+}
 ```
 
 Here's the output we get with the Kaggle data set, when we query for books reviewed in Italy:
@@ -441,18 +440,18 @@ Our starting set of nodes is made up of the books with the given title. We could
 ```java
 // Given a book title, return the average age of users who reviewed a book with that title
 public static double getAverageAgeByBookTitle(BookReviewsGraph graph, String bookTitle) {
-        return graph
-            // Get all nodes labelled as books
-            .getNodesByLabel(BookReviewsGraph.NODE_BOOK).stream()
+    return graph
+        // Get all nodes labelled as books
+        .getNodesByLabel(BookReviewsGraph.NODE_BOOK).stream()
             
-            // Go through each book and filter books where the title matches the given title
-            .filter(b -> (b.properties.get("title").equals(bookTitle)))
+        // Go through each book and filter books where the title matches the given title
+        .filter(b -> (b.properties.get("title").equals(bookTitle)))
             
-            .flatMap(b -> b.incomingEdges(BookReviewsGraph.EDGE_REVIEWED))
-            .map(e -> e.source)
-            .mapToInt(u -> (int) u.properties.get("age"))
-            .average()
-            .orElseThrow();
+        .flatMap(b -> b.incomingEdges(BookReviewsGraph.EDGE_REVIEWED))
+        .map(e -> e.source)
+        .mapToInt(u -> (int) u.properties.get("age"))
+        .average()
+        .orElseThrow();
 }
 ```
 
@@ -485,17 +484,17 @@ Now we can use this index at the beginning of our query:
 ```java
 // Given a book title, return the average age of users who reviewed a book with that title
 public static double getAverageAgeByBookTitle(BookReviewsGraph graph, String bookTitle) {
-        return graph
+    return graph
         
-                // Find books where the title matches the given title, using the index
-                .booksByTitleIndex.getOrDefault(bookTitle, Collections.emptySet())
+        // Find books where the title matches the given title, using the index
+        .booksByTitleIndex.getOrDefault(bookTitle, Collections.emptySet())
                 
-                .stream()
-                .flatMap(b -> b.incomingEdges(BookReviewsGraph.EDGE_REVIEWED))
-                .map(e -> e.source)
-                .mapToInt(u -> (int) u.properties.get("age"))
-                .average()
-                .orElseThrow();
+        .stream()
+        .flatMap(b -> b.incomingEdges(BookReviewsGraph.EDGE_REVIEWED))
+        .map(e -> e.source)
+        .mapToInt(u -> (int) u.properties.get("age"))
+        .average()
+        .orElseThrow();
 }
 ```
 
@@ -509,11 +508,13 @@ A `HashMap` is a good choice when we want to find exact matches on a certain pro
 
 When we want to find entities based on the total order of a certain property (e.g. get all users whose age is above 25), we can use a different data structure, e.g. a [TreeMap](https://docs.oracle.com/javase/7/docs/api/java/util/TreeMap.html), where the cost of finding elements is logarithmic.
 
-If we wanted to find elements by prefix, a [Trie](https://en.wikipedia.org/wiki/Trie) would be the right choice.
+If we wanted to find elements by prefix, a [Trie](https://en.wikipedia.org/wiki/Trie) would be the right choice to implement an index.
 
 ## Conclusion
 
-In this article we've seen how to model a data domain using graphs, and how to implement a simple labelled property graph in Java. The code is quite basic and lacks error handling and thread-safety, but it's a starting point.
+In this article we've seen how we can model a data domain using graphs, and how to implement a simple labelled property graph in Java. The code is quite basic and lacks error handling and thread-safety, but it's a starting point to understand and apply graph modelling to data domains.
 
-The last decade has seen a growing interest in graph databases in the software community. Most of the technology powering these databases is not really new; what's new is the fact that we now have a lot of interconnected data, and we want to query this data based on how elements are connected together, rather than just the values they hold.
+In the past year, I have worked on a project that has involved the analysis of high volumes of interconnected data. Modelling this data as graphs has allowed my team and myself to have an intuitive understanding of how the data is connected: transitioning from whiteboard brainstorming to data model implementation was a straightforward process. Initially we were unsure how the data would end up being queried; however, adopting a graph model has allowed us to keep our model flexible and easy to query throughout the project.
+
+The last decade has seen a growing interest in graph databases in the software community. Most of the technology powering these databases is not really new; what's new is the fact that we now have a lot of interconnected data, and we want to query this data based on how elements are connected together, rather than just the values they hold. 
 
